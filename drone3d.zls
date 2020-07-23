@@ -1,0 +1,17 @@
+open Drone
+
+let node world (pos,angles)  =
+  let rec world = (World.create pos angles) fby world in
+  World.update world pos angles
+
+(* ** main ** *)
+
+let hybrid main () = let
+  rec der t = 1.0 init 0.0
+	and data = drone ()
+	and ((x,y,z),(vx,vy,vz),(phi,theta,psi),(phidot,thetadot,psidot)) = data
+  in present
+     | (period (0.10)) ->
+          let () = world ((x,y,z),(phi,theta,psi)) in plot (t,data)
+     else ()
+
