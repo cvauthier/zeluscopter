@@ -12,10 +12,12 @@ let lightOnePosition = (280.0, 100.0, 50.0, 0.0)
 let lightAmbient = (0.5, 0.5, 0.5, 1.0)
 let lightDiffuse = (0.2, 0.2, 0.2, 1.0)
 
+let rad_to_deg alpha = 180. *. alpha /. 3.1416
+
 let read_state fin =
   try 
     let s = input_line fin in
-    let rec aux i = function
+		let rec aux i = function
 			| 1 -> [float_of_string (String.sub s i (String.length s - i))]
 			| n -> let j = String.index_from s i ',' in
 						 (float_of_string (String.sub s i (j-i)))::(aux (j+1) (n-1)) in
@@ -24,35 +26,48 @@ let read_state fin =
 			| _ -> None
   with _ -> None
 
-let display p1 p2 () =
+let draw_floor () =
+  glPushMatrix ();
+  glColor3 0.0 0.5 0.0;
+  glTranslate 0.0 0.0 (-. 1.0);
+  glScale 1.0 1.0 0.01;
+  glutSolidCube 200.0;
+  glPopMatrix ()
+
+let draw_drone () =
+	let l = 1. in
+	let drone_triangles = [ ([(0.,-. l,0.);(l,0.,0.);(0.,l,0.)],      (0.5,0.5,0.5));
+													([(0.,-. l,0.);(-. l,0.,0.);(0.,l,0.)],   (0.5,0.5,0.5));
+													([(0.,l,0.);(l,0.,0.);(0.,0.,-. l)],		  (1.0,0.0,0.0));
+													([(0.,-. l,0.);(l,0.,0.);(0.,0.,-. l)],   (0.0,1.0,0.0));
+													([(-. l,0.,0.);(0.,-. l,0.);(0.,0.,-. l)],(0.0,0.0,1.0));
+													([(-. l,0.,0.);(0.,l,0.);(0.,0.,-. l)],		(1.0,1.0,0.0))] in 
+	let aux (x,y,z) = glVertex3 x y z in
+	glBegin GL_TRIANGLES;
+	List.iter (fun (l,(r,g,b)) -> glColor3 r g b; List.iter aux l) drone_triangles;
+	glEnd ()
+
+let display pos angles () =
+	let (x,y,z) = !pos and (phi,theta,psi) = !angles in
+
   glClear [GL_COLOR_BUFFER_BIT; GL_DEPTH_BUFFER_BIT];
   glLoadIdentity();
 
-  glTranslate 0.0 0.0 (-. 2.5);
-
+	gluLookAt 0.0 10.0 10.0 0.0 0.0 10.0 0.0 0.0 1.0;
   glPushMatrix();
-  glTranslate left_offset 0.0 0.0;
+  
+	glLight (GL_LIGHT 0) (Light.GL_POSITION lightOnePosition);
 
-  glLight (GL_LIGHT 0) (Light.GL_POSITION lightOnePosition);
-
-  glScale 0.5 0.5 0.5;
-
-  glColor3 0.0 0.5 0.0;
-  glMaterial GL_FRONT (Material.GL_AMBIENT (1.0, 1.0, 1.0, 1.0));
-  draw_wall w1;
-  draw_wall w2;
   draw_floor ();
+  
+	glScale (-. 1.0) (-. 1.0) (-. 1.0);
+	glTranslate x y z;
+	glRotate (rad_to_deg psi) 0.0 0.0 1.0;
+	glRotate (rad_to_deg theta) 0.0 1.0 0.0;
+	glRotate (rad_to_deg phi) 1.0 0.0 0.0;
 
-  glMaterial GL_FRONT_AND_BACK (Material.GL_SHININESS 1.0);
-  glColor3 0.8 0.8 0.8;
-  draw_spring w1 (!p1 -. ball_radius *. 1.5);
-  draw_spring w2 (!p2 +. ball_radius *. 1.5);
-
-  glMaterial GL_FRONT (Material.GL_SPECULAR (0.0, 0.0, 0.0, 0.0));
-  glColor3 1.0 0.0 0.0;
-  draw_ball (!p1 -. ball_radius);
-  glColor3 0.0 0.0 1.0;
-  draw_ball (!p2 +. ball_radius);
+  glMaterial GL_FRONT (Material.GL_AMBIENT (1.0, 1.0, 1.0, 1.0));
+  draw_drone ();
 
   glPopMatrix();
 
@@ -93,8 +108,6 @@ let gl_init () =
   glClearColor 0.0 0.0 0.3 0.0;
   glClearDepth 1.0;
   glEnable GL_DEPTH_TEST;
-
-  gleSetJoinStyle [TUBE_NORM_EDGE; TUBE_JN_ANGLE; TUBE_JN_CAP];
 
   glLight (GL_LIGHT 0) (Light.GL_POSITION lightOnePosition);
   glLight (GL_LIGHT 0) (Light.GL_DIFFUSE  lightDiffuse);

@@ -1,14 +1,14 @@
 (* Matrix and vector manipulation *)
 
-let mat33xvec3 ((M11,M12,M13,M21,M22,M23,M31,M32,M33),(x1,y1,z1)) = (x2,y2,z2) where
-	x2 = M11 *. x1 +. M12 *. y1 +. M13 *. z1 and
-	y2 = M21 *. x1 +. M22 *. y1 +. M23 *. z1 and
-	z2 = M31 *. x1 +. M32 *. y1 +. M33 *. z1
+let mat33xvec3 ((m11,m12,m13,m21,m22,m23,m31,m32,m33),(x1,y1,z1)) = (x2,y2,z2) where
+	x2 = m11 *. x1 +. m12 *. y1 +. m13 *. z1 and
+	y2 = m21 *. x1 +. m22 *. y1 +. m23 *. z1 and
+	z2 = m31 *. x1 +. m32 *. y1 +. m33 *. z1
 
 let scalarxvec3 (l,(x,y,z)) = (l *. x, l *. y, l *. z)
 
 let addvec3 ((x1,y1,z1),(x2,y2,z2)) = (x1 +. x2, y1 +. y2, z1 +. z2)
 let subvec3 ((x1,y1,z1),(x2,y2,z2)) = (x1 -. x2, y1 -. y2, z1 -. z2)
 
-let crossvec3 ((x1,y1,z1),(x2,y2,z2)) = (y1 *. z2 -. y2 *. z1, z1 *. x2 -. z2 *. x1, y1 *. z2 -. y2 *. z1)
+let crossvec3 ((x1,y1,z1),(x2,y2,z2)) = (y1 *. z2 -. y2 *. z1, z1 *. x2 -. z2 *. x1, x1 *. y2 -. y1 *. x2)
 

@@ -2,54 +2,97 @@ open Matrix
 
 (* Parameters *)
 
-let L = 0.05 (* length of an arm (m) *)
+let dr_l = 0.05 (* length of an arm (m) *)
 let m = 0.063 (* mass (kg) *)
 let g = 9.81 (* gravity (m.s^-2) *)
-let (Ix,Iy,Iz) = (2e-4,2e-4,2e-4) (* moments of inertia *)
+let ix = 2e-4
+let iy = 2e-4
+let iz = 6e-4 (* moments of inertia *)
 
-let omega_max_rotor = 5000. *. 3.1415 /. 180.0 (* max rotor speed (rad.s^-1) *)
+let omega_max_rotor = 5000. *. 3.1416 /. 180.0 (* max rotor speed (rad.s^-1) *)
 
 (* Other parameters *)
 let kd = 1e-5
 let k = 5e-5
-let b = 1
+let b = 1e-5
 
-let R (phi,theta,psi) = (R11,R12,R13,R21,R22,R23,R31,R32,R33) where
-	R11 = (cos theta) *. (cos psi) and
-	R12 = (sin phi) *. (sin theta) *. (cos psi) -. (cos phi) *. (sin psi) and
-	R13 = (cos phi) *. (sin theta) *. (cos psi) +. (sin phi) *. (sin psi) and
-	R21 = (cos theta) *. (sin psi) and
-	R22 = (sin phi) *. (sin theta) *. (sin psi) +. (cos phi) *. (cos psi) and
-	R23 = (cos phi) *. (sin theta) *. (sin psi) -. (sin phi) *. (cos psi) and
-	R31 = -1.0 *. (sin theta) and
-	R32 = (sin phi) *. (cos theta) and
-	R33 = (cos phi) *. (cos theta)
+let pi = 3.1416
+
+(* physics functions *)
+
+let body_to_inertial (phi,theta,psi) = (r11,r12,r13,r21,r22,r23,r31,r32,r33) where
+	r11 = (cos theta) *. (cos psi) and
+	r12 = (sin phi) *. (sin theta) *. (cos psi) -. (cos phi) *. (sin psi) and
+	r13 = (cos phi) *. (sin theta) *. (cos psi) +. (sin phi) *. (sin psi) and
+	r21 = (cos theta) *. (sin psi) and
+	r22 = (sin phi) *. (sin theta) *. (sin psi) +. (cos phi) *. (cos psi) and
+	r23 = (cos phi) *. (sin theta) *. (sin psi) -. (sin phi) *. (cos psi) and
+	r31 = -1.0 *. (sin theta) and
+	r32 = (sin phi) *. (cos theta) and
+	r33 = (cos phi) *. (cos theta)
 
 let thetadot_to_omega(thetadot,(phi,theta,psi)) = omega where
 	rec s_th = sin theta and c_th = cos theta
 	and s_ph = sin phi and c_ph = cos phi
-	and T = (1., 0., -1. *. s_th, 0., c_ph, c_th *. s_ph, 0., -1. *. s_ph, c_th *. c_ph)
-	and omega = mat33xvec3(T,thetadot)
+	and mat = (1., 0., -1. *. s_th, 0., c_ph, c_th *. s_ph, 0., -1. *. s_ph, c_th *. c_ph)
+	and omega = mat33xvec3(mat,thetadot)
 
 let omega_to_thetadot(omega,(phi,theta,psi)) = thetadot where
 	rec s_ph = sin phi and c_ph = cos phi
 	and c_th = cos theta and t_th = tan theta
-	and T = (1.,s_ph *. t_th,c_ph *. t_th,0.,c_ph,-1. *. s_ph,0.,s_ph /. c_th,c_ph /. c_th)
-	and thetadot = mat33xvec3(T,omega)
+	and mat = (1.,s_ph *. t_th,c_ph *. t_th,0.,c_ph,-1. *. s_ph,0.,s_ph /. c_th,c_ph /. c_th)
+	and thetadot = mat33xvec3(mat,omega)
 
 let acceleration ((inp1,inp2,inp3,inp4),v,theta) = acc where
-	rec gravity = (0,0,g)
-	and	friction = scalarxvec3 (-1. *. kd, v)
-	and thrust = mat33xvec3 ((R theta),(0,0, -1. *. k *. (inp1 +. inp2 +. inp3 +. inp4)))
+	rec gravity = (0.,0.,g)
+	and	friction = scalarxvec3 (-. kd, v)
+	and thrust = mat33xvec3 ((body_to_inertial theta),(0.,0., -1. *. k *. (inp1 +. inp2 +. inp3 +. inp4)))
 	and acc = addvec3(gravity, (scalarxvec3(1. /. m,(addvec3(friction,thrust)))))
 
 let angular_acceleration ((inp1,inp2,inp3,inp4),omega) = omegadot where
-	rec torques = (L *. k *. (inp1 -. inp3) ,L *. k *. (inp2 -. inp4), b *. (inp1 -. inp2 +. inp3 -. inp4))
+	rec torques = (dr_l *. k *. (inp3 -. inp1), dr_l *. k *. (inp2 -. inp4), b *. (inp1 -. inp2 +. inp3 -. inp4))
 	and (wx,wy,wz) = omega
-	and (foo1,foo2,foo3) = subvec3 (torques, (cross33(omega,(Ix *. xw, Iy *. wy, Iz *. wz))))
-	and omegadot = (foo1 /. Ix, foo2 /. Iy, foo3 /. Iz)
+	and (foo1,foo2,foo3) = subvec3 (torques, (crossvec3(omega,(ix *. wx, iy *. wy, iz *. wz))))
+	and omegadot = (foo1 /. ix, foo2 /. iy, foo3 /. iz)
 
-let controller () = scalarxvec3(omega_rotor_max,(1.,1.,1.))
+(* controller *)
+
+let solve_inputs (wanted_torque,wanted_thrust) = (i1,i2,i3,i4) where
+	rec (tx,ty,tz) = wanted_torque
+	and a1 = tx /. (dr_l *. k)
+	and a2 = ty /. (dr_l *. k)
+	and a3 = tz /. b
+	and a4 = wanted_thrust /. k
+	and imax = omega_max_rotor *. omega_max_rotor
+	and i1 = max 0.0 (min imax (-0.5 *. a1 +. 0.25 *. (a3 +. a4)))
+	and i2 = max 0.0 (min imax (0.5 *. a2 +. 0.25 *. (a4 -. a3)))
+	and i3 = max 0.0 (min imax (0.5 *. a1 +. 0.25 *. (a3 +. a4)))
+	and i4 = max 0.0 (min imax (-0.5 *. a2 +. 0.25 *. (a4 -. a3)))
+
+let dt = 0.05
+let node euler_integrator (x0,xdot) = x where
+	rec x = x0 -> pre (x +. xdot *. dt)
+
+let pd_k1 = 5.
+let pd_k2 = 5.
+let node pd_error angledot = error where
+	error = pd_k1 *. angledot +. pd_k2 *. (euler_integrator (0.0,angledot))
+
+let node controller (phidot,thetadot,psidot) = inputs where
+	rec ephi 	 = pd_error phidot
+	and etheta = pd_error thetadot
+	and epsi   = pd_error psidot
+	and wanted_torque = (-. ix *. ephi, -. iy *. etheta, -. iz *. epsi)
+	and inputs = solve_inputs (wanted_torque, m *. g)
+
+(* simulation *)
+
+let hybrid get_inputs (phidot,thetadot,psidot) = (i1,i2,i3,i4) where
+	rec init i1 = 0.0
+	and init i2 = 0.0
+	and init i3 = 0.0
+	and init i4 = 0.0
+	and present (period (dt)) -> do (i1,i2,i3,i4) = controller (phidot,thetadot,psidot) done
 
 let hybrid drone (thetadot0) =
 	((x,y,z),(vx,vy,vz),(phi,theta,psi),(phidot,thetadot,psidot)) where
@@ -59,7 +102,7 @@ let hybrid drone (thetadot0) =
 	and der vx = ax init 0.0
 	and der vy = ay init 0.0
 	and der vz = az init 0.0
-	and inputs = controller ()
+	and inputs = get_inputs (phidot,thetadot,psidot)
 	and (ax,ay,az) = acceleration (inputs,(vx,vy,vz),(phi,theta,psi))
 	and (aax,aay,aaz) = angular_acceleration (inputs,(wx,wy,wz))
 	and (wx0,wy0,wz0) = thetadot_to_omega(thetadot0,(phi,theta,psi))
@@ -67,23 +110,27 @@ let hybrid drone (thetadot0) =
 	and der wy = aay init wy0
 	and der wz = aaz init wz0
 	and (phidot,thetadot,psidot) = omega_to_thetadot((wx,wy,wz),(phi,theta,psi))
-	and der phi = phidot init 0.0
-	and der theta = thetadot init 0.0
-	and der psi = psidot init 0.0
+	and der phi = phidot init 0.0 reset | up (last phi -. pi) -> -. pi
+																			| up (-. pi -. last phi) -> pi
+	and der theta = thetadot init 0.0 
+	and der psi = psidot init 0.0 reset | up (last psi -. pi) -> -. pi
+																			| up (-. pi -. last psi) -> pi
 
 (* ** plotting ** *)
 
 open Scope
 
 let node plot (t,((x,y,z),(vx,vy,vz),(phi,theta,psi),(phidot,thetadot,psidot))) =
-  let s1 = scope (0.0, 20.0, ("z", linear, -1. *. z)) in
-  let s2 = scope (0.0, 20.0, ("vz", linear, -1. *. z)) in
-  window2 ("drone", 10.0, t, s1, s2)
+  let s1 = scope (-. pi, pi, ("phi", linear, phi)) in
+  let s2 = scope (-. pi, pi, ("theta", linear, theta)) in
+  let s3 = scope (-. pi, pi, ("psi", linear, psi)) in
+	let s4 = scope (0.0, 20.0, ("z", linear, -. z)) in
+  window4 ("drone", 10.0, t, s1, s2, s3, s4)
 
 (* ** main ** *)
 
 let hybrid main () = 
   let der t = 1.0 init 0.0 in
-  let data = drone () in
+  let data = drone (1.23,1.12,-0.81) in
   present (period (0.10)) -> plot (t,data); ()
 
