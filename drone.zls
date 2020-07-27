@@ -2,19 +2,19 @@ open Matrix
 
 (* Parameters *)
 
-let dr_l = 0.05 (* length of an arm (m) *)
+let dr_l = 0.0624 (* length of an arm (m) *)
 let m = 0.063 (* mass (kg) *)
 let g = 9.81 (* gravity (m.s^-2) *)
-let ix = 2e-4
-let iy = 2e-4
-let iz = 6e-4 (* moments of inertia *)
+let ix = 5.82e-4
+let iy = 7.17e-4
+let iz = 1e-4 (* moments of inertia *)
 
 let omega_max_rotor = 5000. *. 3.1416 /. 180.0 (* max rotor speed (rad.s^-1) *)
 
 (* Other parameters *)
 let kd = 1e-5
-let k = 5e-5
-let b = 1e-5
+let k = 1.60e-4
+let b = 3.87e-6
 
 let pi = 3.1416
 
@@ -69,14 +69,15 @@ let solve_inputs (wanted_torque,wanted_thrust) = (i1,i2,i3,i4) where
 	and i3 = max 0.0 (min imax (0.5 *. a1 +. 0.25 *. (a3 +. a4)))
 	and i4 = max 0.0 (min imax (-0.5 *. a2 +. 0.25 *. (a4 -. a3)))
 
-let dt = 0.05
+let dt = 0.01
 let node euler_integrator (x0,xdot) = x where
 	rec x = x0 -> pre (x +. xdot *. dt)
 
-let pd_k1 = 5.
-let pd_k2 = 5.
+let pd_k1 = 10.
+let pd_k2 = 10.
 let node pd_error angledot = error where
-	error = pd_k1 *. angledot +. pd_k2 *. (euler_integrator (0.0,angledot))
+	rec angle = euler_integrator (0.0,angledot)
+	and error = pd_k1 *. angledot +. pd_k2 *. angle
 
 let node controller (phidot,thetadot,psidot) = inputs where
 	rec ephi 	 = pd_error phidot
@@ -95,7 +96,7 @@ let hybrid get_inputs (phidot,thetadot,psidot) = (i1,i2,i3,i4) where
 	and present (period (dt)) -> do (i1,i2,i3,i4) = controller (phidot,thetadot,psidot) done
 
 let hybrid drone (thetadot0) =
-	((x,y,z),(vx,vy,vz),(phi,theta,psi),(phidot,thetadot,psidot)) where
+	((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot)) where
 	rec der x = vx init 0.0
 	and der y = vy init 0.0
 	and der z = vz init -10.0
@@ -120,10 +121,10 @@ let hybrid drone (thetadot0) =
 
 open Scope
 
-let node plot (t,((x,y,z),(vx,vy,vz),(phi,theta,psi),(phidot,thetadot,psidot))) =
-  let s1 = scope (-. pi, pi, ("phi", linear, phi)) in
-  let s2 = scope (-. pi, pi, ("theta", linear, theta)) in
-  let s3 = scope (-. pi, pi, ("psi", linear, psi)) in
+let node plot (t,((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot))) =
+  let s1 = scope (-0.005, 0.005, ("phi", linear, phi)) in
+  let s2 = scope (-0.005, 0.005, ("psi", linear, psi)) in
+  let s3 = scope (-0.01, 0.01, ("ax", linear, ax)) in
 	let s4 = scope (0.0, 20.0, ("z", linear, -. z)) in
   window4 ("drone", 10.0, t, s1, s2, s3, s4)
 
