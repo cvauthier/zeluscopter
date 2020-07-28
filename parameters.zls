@@ -1,0 +1,21 @@
+(* Parameters *)
+
+(* Environment parameters *)
+
+let g = 9.81 (* gravity (m.s^-2) *)
+
+(* Drone parameters *)
+
+let m = 0.063 (* mass (kg) *)
+let ix = 5.82e-4 (* moments of inertia *)
+let iy = 7.17e-4
+let iz = 1e-4 
+
+let dr_l = 0.0624 (* length of an arm (m) *)
+
+let omega_max_rotor = 5000. *. 3.1416 /. 180.0 (* max rotor angular speed (rad.s^-1) *)
+
+let kd = 1e-5 (* Air friction coefficient (kg.s^-1) (F = -kd*v) - to adjust *)
+let k = 1.60e-4 (* (rotor angular speed)^2 to thrust ratio *)
+let b = 3.87e-6 (* (rotor angular speed)^2 to vertical torque ratio *)
+
