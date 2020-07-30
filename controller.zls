@@ -18,12 +18,6 @@ let solve_inputs ((tx,ty,tz),thrust) = (i1,i2,i3,i4) where
 let node euler_integrator (x0,xdot) = x where
 	rec x = x0 -> pre (x +. xdot *. step)
 
-let pd_kd = 10.
-let pd_kp = 10.
-let node pd_controller xdot = output where
-	rec x = euler_integrator (0.0,xdot)
-	and output = pd_kd *. xdot +. pd_kp *. x
-
 let pid_kd = 10.
 let pid_kp = 10.
 let pid_ki = 10.
@@ -33,8 +27,9 @@ let node pid_controller xdot = output where
 	and output = pid_kd *. xdot +. pid_kp *. x +. pid_ki *. xi
 
 let node controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z)) = (i1,i2,i3,i4) where
-	rec control_x = pd_controller gyro_x
-	and control_y = pd_controller gyro_y
-	and control_z = pd_controller gyro_z
-	and (i1,i2,i3,i4) = solve_inputs ((-. ix *. control_x, -. iy *. control_y, -. iz *. control_z), m *. g)
+	rec control_x = pid_controller gyro_x
+	and control_y = pid_controller gyro_y
+	and control_z = pid_controller gyro_z
+	and (tx,ty,tz) = (-. ix *. control_x, -. iy *. control_y, -. iz *. control_z)
+	and (i1,i2,i3,i4) = solve_inputs((tx,ty,tz),  m *. g)
 

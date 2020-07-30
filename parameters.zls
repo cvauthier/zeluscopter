@@ -11,7 +11,7 @@ let ix = 5.82e-4 (* moments of inertia *)
 let iy = 7.17e-4
 let iz = 1e-4 
 
-let dr_l = 0.0624 (* length of an arm (m) *)
+let l = 0.0624 (* length of an arm (m) *)
 
 let omega_max_rotor = 5000. *. 3.1416 /. 180.0 (* max rotor angular speed (rad.s^-1) *)
 

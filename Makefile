@@ -1,5 +1,4 @@
-OCAMLC    ?= ocamlc -I /home/cv/.opam/4.08.0/lib/ocaml
-OCAMLFLAGS    ?= -annot
+OCAMLC?= ocamlc -I /home/cv/.opam/4.08.0/lib/ocaml
 
 GLMLITE = -I /home/cv/.opam/4.08.0/lib/glMLite
 
@@ -16,14 +15,18 @@ ZELUC = ../zelus/bin/zeluc
 ZLLIB = ../zelus/lib
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-# implicit rules
+PRODUCED_ML=parameters.ml matrix.ml controller.ml physics.ml drone.ml drone3d.ml drone_main.ml drone3d_main.ml
+OBJS=tools.cmo parameters.cmo matrix.cmo physics.cmo controller.cmo drone.cmo 
+OBJS3D=$(OBJS) world.cmo drone3d.cmo
 
-.SUFFIXES : .mli .ml .cmi .cmo .cmx .zls .zli .byte 
+.SUFFIXES : .mli .ml .cmi .cmo .cmx .zls .zli .zci .byte 
+
+all: drone.byte drone3d.byte
 
 %.cmi: %.mli
-	$(OCAMLC) $(OCAMLFLAGS) -c $(INCLUDES) $<
+	$(OCAMLC) $(OCAMLFLAGS) -c -I $(ZLLIB) $(INCLUDES) $<
 
-%.cmo %.cmi: %.ml
+%.cmo: %.ml
 	$(OCAMLC) $(OCAMLFLAGS) -c -I $(ZLLIB) $(INCLUDES) $<
 
 %.zci: %.zli
@@ -32,45 +35,27 @@ ZLEXTRALIBS = $(ZLGTKLIBS)
 %.ml: %.zls
 	$(ZELUC) $(ZELUCFLAGS) $<
 
-all:  drone.byte drone3d.byte
-
 drone3d.byte: INCLUDES += -I +lablgtk2 $(SUNDIALS) $(GLMLITE)
 drone3d.byte: ZLEXTRALIBS += GL.cma Glu.cma Glut.cma
-drone3d.byte: world.cmo drone.cmo matrix.cmo drone3d.cmo drone3d_main.ml
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) \
-						matrix.cmo drone.cmo world.cmo drone3d.cmo drone3d_main.ml
+drone3d.byte: $(OBJS3D) drone3d_main.ml
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(OBJS3D) drone3d_main.ml
 
-drone3d.ml drone3d_main.ml: drone3d.zls drone.zci world.zci
-	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main $<
+drone3d_main.ml: 
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main drone3d.zls
 	mv main.ml drone3d_main.ml
 
-world.cmi: world.mli
+drone_main.ml:
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main drone.zls
+	mv main.ml drone_main.ml
+
+drone.byte: $(OBJS) drone_main.ml
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(OBJS) drone_main.ml
 
 world.cmo: INCLUDES += $(GLMLITE)
-world.cmo: world.ml world.cmi
-
-world.zci: world.zli
-
-drone.byte: drone.cmo matrix.cmo drone_main.ml
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) \
-						matrix.cmo drone.cmo drone_main.ml
-
-drone.ml: matrix.cmi matrix.zci
+drone.ml: tools.zci
+drone3d.ml: world.zci
 
 clean:
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
-	-@rm -f drone.ml matrix.ml drone_main.ml drone3d.ml drone3d_main.ml
-	-@rm -f drone3d.byte 
-
-realclean cleanall: clean
-
-# Common rules
-.SUFFIXES : .ml .zls .zci
-
-matrix.ml matrix.zci: matrix.zls
-	$(ZELUC) $(ZELUCFLAGS) $<
-
-%.ml %.zci: %.zls
-	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 9 -gtk2 $<
-	mv main.ml $(<:.zls=)_main.ml
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci $(PRODUCED_ML)
+	-@rm -f drone.byte drone3d.byte 
 
