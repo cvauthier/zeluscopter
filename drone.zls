@@ -1,37 +1,15 @@
-open Matrix
-open Parameters
 open Physics
-
-let pi = 3.1416
+open Controller
+open Parameters
 
 let node random () = (2.0 *. (Tools.random_float 1.0) -. 1.0)
-
-let node sensor (value,sigma) = value +. (Tools.random_normal ()) *. sigma
-
-let hybrid get_inputs ((ax,ay,az),(wx,wy,wz)) = (i1,i2,i3,i4) where
-	rec init i1 = 0.0
-	and init i2 = 0.0
-	and init i3 = 0.0
-	and init i4 = 0.0
-	and present (period (Controller.step)) ->
-
-		let accel_error = 0.25 *. g and gyro_error = 0.25 *. pi /. 180. in
-	
-		let accel_x = sensor (last ax, accel_error)
-		and accel_y = sensor (last ay, accel_error)
-		and accel_z = sensor (last az, accel_error)
-		and gyro_x = sensor (wx, gyro_error)
-		and gyro_y = sensor (wy, gyro_error)
-		and gyro_z = sensor (wz, gyro_error) in
-
-		do (i1,i2,i3,i4) = Controller.controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z)) done
 
 let hybrid drone () =
 	((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot)) where
 	
 	rec der x = vx init 0.0
 	and der y = vy init 0.0
-	and der z = vz init -10.0
+	and der z = vz init -0.5
 	
 	and der vx = ax init 0.0
 	and der vy = ay init 0.0
@@ -51,7 +29,7 @@ let hybrid drone () =
 																			| up (-. pi -. last psi) -> pi
 	and (phidot,thetadot,psidot) = omega_to_thetadot((wx,wy,wz),(phi,theta,psi))
 
-	and inputs = get_inputs ((ax,ay,az),(wx,wy,wz))
+	and inputs = Controller.simulate_controller ((ax,ay,az),(wx,wy,wz))
 
 (* ** plotting ** *)
 

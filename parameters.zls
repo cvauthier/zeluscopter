@@ -19,3 +19,7 @@ let kd = 1e-5 (* Air friction coefficient (kg.s^-1) (F = -kd*v) - to adjust *)
 let k = 1.60e-4 (* (rotor angular speed)^2 to thrust ratio *)
 let b = 3.87e-6 (* (rotor angular speed)^2 to vertical torque ratio *)
 
+(* Other *)
+
+let pi = 3.141592654
+

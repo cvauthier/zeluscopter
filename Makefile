@@ -51,11 +51,15 @@ drone_main.ml:
 drone.byte: $(OBJS) drone_main.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(OBJS) drone_main.ml
 
+visualizer:
+	g++ -o visualizer visualizer.cpp -lIrrlicht
+
 world.cmo: INCLUDES += $(GLMLITE)
-drone.ml: tools.zci
+world.cmo: visualizer
+tools.cmo: tools.zci
 drone3d.ml: world.zci
 
 clean:
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci $(PRODUCED_ML)
-	-@rm -f drone.byte drone3d.byte 
+	-@rm -f drone.byte drone3d.byte visualizer
 

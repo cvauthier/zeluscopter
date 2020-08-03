@@ -143,12 +143,14 @@ let create pos angles =
   let input, output = Unix.pipe () in
   let outch = Unix.out_channel_of_descr output in
   match Unix.fork () with
-  | 0 -> (Unix.close input; outch) (* child *)
+  | 0 -> (Unix.close input; Unix.sleep 2; outch) (* child *)
   | _ -> (* parent process *)
       begin
         Unix.close output;
         Unix.set_nonblock input;
-        run_glut_loop pos angles (Unix.in_channel_of_descr input); (* Never returns *)
+				Unix.dup2 input Unix.stdin;
+				Unix.execv "visualizer" [||];
+        (*run_glut_loop pos angles (Unix.in_channel_of_descr input); (* Never returns *)*)
         outch
       end
 
