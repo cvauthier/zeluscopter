@@ -2,12 +2,16 @@ open Physics
 open Controller
 open Parameters
 
+let t0 = 5.0
+
 let node random () = (2.0 *. (Tools.random_float 1.0) -. 1.0)
 
 let hybrid drone () =
 	((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot)) where
 	
-	rec der x = vx init 0.0
+	rec der t = 1.0 init 0.0
+
+	and der x = vx init 0.0
 	and der y = vy init 0.0
 	and der z = vz init -0.5
 	
@@ -17,9 +21,9 @@ let hybrid drone () =
 	
 	and (ax,ay,az) = acceleration (inputs,(vx,vy,vz),(phi,theta,psi))
 	
-	and der wx = aax init random ()
-	and der wy = aay init random ()
-	and der wz = aaz init random ()
+	and der wx = aax init 0.0 reset up (t -. t0) -> random ()
+	and der wy = aay init 0.0 reset up (t -. t0) -> random ()
+	and der wz = aaz init 0.0 reset up (t -. t0) -> random ()
 	and (aax,aay,aaz) = angular_acceleration (inputs,(wx,wy,wz))
 	
 	and der phi = phidot init 0.0 reset | up (last phi -. pi) -> -. pi
@@ -36,11 +40,12 @@ let hybrid drone () =
 open Scope
 
 let node plot (t,((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot))) =
-  let s1 = scope (-0.05, 0.05, ("phi", linear, phi)) in
-  let s2 = scope (-0.05, 0.05, ("psi", linear, psi)) in
-  let s3 = scope (-0.1, 0.1, ("ax", linear, ax)) in
-	let s4 = scope (5.0, 15.0, ("z", linear, -. z)) in
-  window4 ("drone", 10.0, t, s1, s2, s3, s4)
+  let s1 = scope (-0.02, 0.02, ("phi", linear, phi)) in
+  let s2 = scope (-0.02, 0.02, ("theta", linear, theta)) in
+  let s3 = scope (-0.02, 0.02, ("psi", linear, psi)) in
+  let s4 = scope (-0.1, 0.1, ("ax", linear, ax)) in
+	let s5 = scope (0.0, 1.0, ("z", linear, -. z)) in
+  window5 ("drone", 10.0, t, s1, s2, s3, s4, s5)
 
 (* ** main ** *)
 

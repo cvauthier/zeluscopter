@@ -18,13 +18,10 @@ let solve_inputs ((tx,ty,tz),thrust) = (i1,i2,i3,i4) where
 let node euler_integrator (x0,xdot) = x where
 	rec x = x0 -> pre (x +. xdot *. step)
 
-let pid_kd = 10.
-let pid_kp = 20.
-let pid_ki = 40.
-let node pid_controller xdot = output where
+let node pid_controller (xdot,kp,kd,ki) = output where
 	rec x = euler_integrator (0.0,xdot)
 	and xi = euler_integrator (0.0,x)
-	and output = pid_kd *. xdot +. pid_kp *. x +. pid_ki *. xi
+	and output = kd *. xdot +. kp *. x +. ki *. xi
 
 let node filterFIR5 (x,(b0,b1,b2,b3,b4)) = y where 
 	rec a0 = x 
@@ -37,9 +34,14 @@ let node filterFIR5 (x,(b0,b1,b2,b3,b4)) = y where
 let node movingAverage5 x = filterFIR5(x,(0.2,0.2,0.2,0.2,0.2))
 
 let node controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z)) = (i1,i2,i3,i4) where
-	rec control_x = pid_controller (filterFIR5 (gyro_x, (0.2,0.2,0.2,0.2,0.2)))
-	and control_y = pid_controller (filterFIR5 (gyro_y, (0.2,0.2,0.2,0.2,0.2)))
-	and control_z = pid_controller (filterFIR5 (gyro_z, (0.2,0.2,0.2,0.2,0.2)))
+	
+	rec fgyro_x = filterFIR5 (gyro_x, (0.2,0.2,0.2,0.2,0.2)) +. 0.0 *. accel_x
+	and fgyro_y = filterFIR5 (gyro_y, (0.2,0.2,0.2,0.2,0.2)) +. 0.0 *. accel_y
+	and fgyro_z = filterFIR5 (gyro_z, (0.2,0.2,0.2,0.2,0.2)) +. 0.0 *. accel_z
+	
+	and control_x = pid_controller (fgyro_x,40.,30.,10.)
+	and control_y = pid_controller (fgyro_y,40.,30.,10.)
+	and control_z = pid_controller (fgyro_z,20.,10.,0.)
 	and (tx,ty,tz) = (-. ix *. control_x, -. iy *. control_y, -. iz *. control_z)
 	and (i1,i2,i3,i4) = solve_inputs((tx,ty,tz),  m *. g)
 
@@ -52,15 +54,15 @@ let hybrid simulate_controller ((ax,ay,az),(wx,wy,wz)) = (i1,i2,i3,i4) where
 	and init i4 = 0.0
 	and present (period (step)) ->
 
-		let accel_error = 0.25 *. g and gyro_error = 0.25 *. pi /. 180. in
+		let accel_error = 0.1 *. g and gyro_error = 0.1 *. pi /. 180. in
 	
 		(* add a Gaussian noise to simulate the sensors *)
-		let accel_x = sensor (last ax, accel_error)
-		and accel_y = sensor (last ay, accel_error)
-		and accel_z = sensor (last az, accel_error)
-		and gyro_x = sensor (wx, gyro_error)
-		and gyro_y = sensor (wy, gyro_error)
-		and gyro_z = sensor (wz, gyro_error) in
+		let accel_x = sensor (0.0 -> last ax, accel_error)
+		and accel_y = sensor (0.0 -> last ay, accel_error)
+		and accel_z = sensor (0.0 -> last az, accel_error)
+		and gyro_x = sensor (0.0 -> last wx, gyro_error)
+		and gyro_y = sensor (0.0 -> last wy, gyro_error)
+		and gyro_z = sensor (0.0 -> last wz, gyro_error) in
 
 		let (j1,j2,j3,j4) = controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z)) in
 

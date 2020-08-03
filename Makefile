@@ -1,7 +1,5 @@
 OCAMLC?= ocamlc -I /home/cv/.opam/4.08.0/lib/ocaml
 
-GLMLITE = -I /home/cv/.opam/4.08.0/lib/glMLite
-
 LABLGTK2 = -I /home/cv/.opam/4.08.0/lib/lablgtk2
 
 SUNDIALS=-I /home/cv/.opam/4.08.0/lib/sundialsml
@@ -35,9 +33,8 @@ all: drone.byte drone3d.byte
 %.ml: %.zls
 	$(ZELUC) $(ZELUCFLAGS) $<
 
-drone3d.byte: INCLUDES += -I +lablgtk2 $(SUNDIALS) $(GLMLITE)
-drone3d.byte: ZLEXTRALIBS += GL.cma Glu.cma Glut.cma
-drone3d.byte: $(OBJS3D) drone3d_main.ml
+drone3d.byte: INCLUDES += -I +lablgtk2 $(SUNDIALS) 
+drone3d.byte: $(OBJS3D) drone3d_main.ml visualizer
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(OBJS3D) drone3d_main.ml
 
 drone3d_main.ml: 
@@ -54,8 +51,6 @@ drone.byte: $(OBJS) drone_main.ml
 visualizer:
 	g++ -o visualizer visualizer.cpp -lIrrlicht
 
-world.cmo: INCLUDES += $(GLMLITE)
-world.cmo: visualizer
 tools.cmo: tools.zci
 drone3d.ml: world.zci
 

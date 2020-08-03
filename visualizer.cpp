@@ -1,5 +1,6 @@
 #include <irrlicht/irrlicht.h>
-#include <stdio.h>
+#include <cstdio>
+#include <cmath>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -36,29 +37,37 @@ private:
 int main(int argc, char **argv)
 {
 	fcntl(1,F_SETFL,O_NONBLOCK);
-	
+
 	MyEventReceiver receiver;
-	IrrlichtDevice* device = createDevice(video::EDT_OPENGL, core::dimension2d<u32>(640, 480), 16, false, true, false, &receiver);
+	
+	SIrrlichtCreationParameters params;
+	params.DriverType = video::EDT_OPENGL;
+	params.WindowSize = core::dimension2d<u32>(640,480);
+	params.EventReceiver = &receiver;
+	params.LoggingLevel = ELL_ERROR;
+	params.Stencilbuffer = true;
+	
+	IrrlichtDevice* device = createDeviceEx(params);
 
 	video::IVideoDriver* driver = device->getVideoDriver();
 	scene::ISceneManager* smgr = device->getSceneManager();
+
+	// Setup light
+
+	smgr->addLightSceneNode(0,core::vector3df(0,10,0));
 	
 	// Setup drone
 
 	scene::ISceneNode *yawNode = smgr->addEmptySceneNode();
 	scene::ISceneNode *pitchNode = smgr->addEmptySceneNode(yawNode);
 	scene::ISceneNode *rowNode = smgr->addEmptySceneNode(pitchNode);
-	scene::IAnimatedMeshSceneNode* drone = smgr->addAnimatedMeshSceneNode(smgr->getMesh("drone.obj"),rowNode);
+	scene::IAnimatedMeshSceneNode* drone = smgr->addAnimatedMeshSceneNode(smgr->getMesh("media/drone.obj"),rowNode);
 
-	yawNode->setPosition(core::vector3df(0,0,0));
+	yawNode->setPosition(core::vector3df(0.0,0.5,0.0));
 	drone->setRotation(core::vector3df(0,90,0));
 	drone->setScale(core::vector3df(0.01,0.01,0.01));
 	drone->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
 	drone->addShadowVolumeSceneNode();
-
-	// Setup light
-
-	smgr->addLightSceneNode(0,core::vector3df(0,10,0));
 
 	// Setup camera
 
@@ -71,58 +80,52 @@ int main(int argc, char **argv)
 
 	// Setup terrain
 
-	scene::ITerrainSceneNode* terrain = smgr->addTerrainSceneNode(
-		"../../irrlicht-1.8.4/media/terrain-heightmap.bmp",
-		0,					// parent node
-		-1,					// node id
+	scene::ITerrainSceneNode* terrain = smgr->addTerrainSceneNode("media/hmap.png", 0, -1,
 		core::vector3df(-5.0, 0.0, -5.0),		// position
 		core::vector3df(0.f, 0.f, 0.f),		// rotation
 		core::vector3df(10.0 / 256.0, 0.25 / 256.0, 10.0 / 256.0),	// scale
 		video::SColor ( 255, 255, 255, 255 ),	// vertexColor
-		5,					// maxLOD
-		scene::ETPS_17,				// patchSize
-		4					// smoothFactor
-		);
+		5, scene::ETPS_17,	4);
 
-	terrain->setMaterialTexture(0, driver->getTexture("../../irrlicht-1.8.4/media/terrain-texture.jpg"));
-	terrain->setMaterialTexture(1, driver->getTexture("../../irrlicht-1.8.4/media/detailmap3.jpg"));
-	terrain->setMaterialType(video::EMT_DETAIL_MAP);
-	terrain->scaleTexture(1.0f, 4.0f);
+	terrain->setMaterialTexture(0, driver->getTexture("media/grass.jpg"));
+	terrain->setMaterialType(video::EMT_SOLID);
+	terrain->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
+	terrain->scaleTexture(10.0f);
 	
 	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
 
 	// Setup skydome
 
-	scene::ISceneNode* skydome=smgr->addSkyDomeSceneNode(driver->getTexture("../../irrlicht-1.8.4/media/skydome.jpg"),16,8,0.8f,2.0f);
+	scene::ISceneNode* skydome=smgr->addSkyDomeSceneNode(driver->getTexture("media/sky.jpg"),16,8,0.8f,2.0f);
 	skydome->setVisible(true);
 
 	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
 	
 	device->setWindowCaption(L"Drone visualization");
 	
-	const f32 MOVEMENT_SPEED = .1f;
-
+	double cam_theta = 0.0;
+	double cam_phi = 3.1416 / 4.0;
+	double cam_l = 0.2;
 
 	while(device->run())
 	{
 		const u32 t0 = device->getTimer()->getTime();
-		/*const f32 frameDeltaTime = (f32)(now - then) / 1000.f; // Time in seconds
-		then = now;
 
-		core::vector3df nodePosition = drone->getPosition();
-
+		if(receiver.IsKeyDown(irr::KEY_UP))
+			cam_phi = fmin(fmax(cam_phi+0.01,-1.5),1.5);
+		else if(receiver.IsKeyDown(irr::KEY_DOWN))
+			cam_phi = fmin(fmax(cam_phi-0.01,-1.5),1.5);
+		
 		if(receiver.IsKeyDown(irr::KEY_KEY_W))
-			nodePosition.Y += MOVEMENT_SPEED * frameDeltaTime;
+			cam_l = fmin(fmax(cam_l+0.002,0.06),1.0);
 		else if(receiver.IsKeyDown(irr::KEY_KEY_S))
-			nodePosition.Y -= MOVEMENT_SPEED * frameDeltaTime;
+			cam_l = fmin(fmax(cam_l-0.002,0.06),1.0);
 
-		if(receiver.IsKeyDown(irr::KEY_KEY_A))
-			nodePosition.X -= MOVEMENT_SPEED * frameDeltaTime;
-		else if(receiver.IsKeyDown(irr::KEY_KEY_D))
-			nodePosition.X += MOVEMENT_SPEED * frameDeltaTime;
+		if(receiver.IsKeyDown(irr::KEY_RIGHT))
+			cam_theta += 0.02;
+		else if(receiver.IsKeyDown(irr::KEY_LEFT))
+			cam_theta -= 0.02;
 
-		drone->setPosition(nodePosition);
-*/
 		float x,y,z,phi,theta,psi;
 		if (scanf("%f,%f,%f,%f,%f,%f\n",&x,&y,&z,&phi,&theta,&psi) > 0)
 		{
@@ -132,7 +135,10 @@ int main(int argc, char **argv)
 			rowNode->setRotation(core::vector3df(phi * 180.0 / 3.1416,0.0,0.0));
 	
 			camera->setTarget(yawNode->getPosition());
-			camera->setPosition(yawNode->getPosition() + core::vector3df(0.1,0.1,0.0));
+			core::vector3df vec(cam_l*cos(cam_theta)*cos(cam_phi),
+													cam_l*sin(cam_phi),
+													cam_l*sin(cam_theta)*cos(cam_phi));
+			camera->setPosition(yawNode->getPosition() + vec);
 		}
 
 		driver->beginScene(true, true, video::SColor(255,113,113,133));
