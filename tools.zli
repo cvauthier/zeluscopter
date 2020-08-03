@@ -1,5 +1,0 @@
-
-val random_float : float -> float
-
-val random_normal : unit -> float
-

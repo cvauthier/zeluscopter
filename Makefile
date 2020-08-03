@@ -13,9 +13,8 @@ ZELUC = ../zelus/bin/zeluc
 ZLLIB = ../zelus/lib
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-PRODUCED_ML=parameters.ml matrix.ml controller.ml physics.ml drone.ml drone3d.ml drone_main.ml drone3d_main.ml
-OBJS=tools.cmo parameters.cmo matrix.cmo physics.cmo controller.cmo drone.cmo 
-OBJS3D=$(OBJS) world.cmo drone3d.cmo
+PRODUCED_ML=parameters.ml matrix.ml controller.ml physics.ml drone.ml drone_main.ml drone3d_main.ml
+OBJS=world.cmo parameters.cmo matrix.cmo physics.cmo controller.cmo drone.cmo 
 
 .SUFFIXES : .mli .ml .cmi .cmo .cmx .zls .zli .zci .byte 
 
@@ -35,11 +34,11 @@ all: drone.byte drone3d.byte
 
 drone3d.byte: INCLUDES += -I +lablgtk2 $(SUNDIALS) 
 drone3d.byte: $(OBJS3D) drone3d_main.ml visualizer
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(OBJS3D) drone3d_main.ml
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(OBJS) drone3d_main.ml
 
 drone3d_main.ml: 
-	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main drone3d.zls
-	mv main.ml drone3d_main.ml
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main3d drone.zls
+	mv main3d.ml drone3d_main.ml
 
 drone_main.ml:
 	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main drone.zls
@@ -51,8 +50,7 @@ drone.byte: $(OBJS) drone_main.ml
 visualizer:
 	g++ -o visualizer visualizer.cpp -lIrrlicht
 
-tools.cmo: tools.zci
-drone3d.ml: world.zci
+world.cmo: world.zci
 
 clean:
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci $(PRODUCED_ML)

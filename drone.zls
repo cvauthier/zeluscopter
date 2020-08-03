@@ -4,7 +4,7 @@ open Parameters
 
 let t0 = 5.0
 
-let node random () = (2.0 *. (Tools.random_float 1.0) -. 1.0)
+let node random () = (2.0 *. (World.random_float 1.0) -. 1.0)
 
 let hybrid drone () =
 	((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot)) where
@@ -53,4 +53,17 @@ let hybrid main () =
   let der t = 1.0 init 0.0 in
   let data = drone () in
   present (period (0.10)) -> plot (t,data); ()
+
+let node world (pos,angles)  =
+  let rec world = (World.create pos angles) fby world in
+  World.update world pos angles
+
+let hybrid main3d () = let
+  rec der t = 1.0 init 0.0
+	and data = drone () 
+	and ((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot)) = data
+  in present
+     | (period (0.10)) ->
+          let () = world ((x,y,z),(phi,theta,psi)) in plot (t,data)
+     else ()
 
