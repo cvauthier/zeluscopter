@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
 	// Setup light
 
-	smgr->addLightSceneNode(0,core::vector3df(0,10,0));
+	smgr->addLightSceneNode(0,core::vector3df(0,100,0),video::SColorf(1.0,1.0,1.0),1000.0);
 	
 	// Setup drone
 

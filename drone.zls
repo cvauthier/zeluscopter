@@ -13,7 +13,7 @@ let hybrid drone () =
 
 	and der x = vx init 0.0
 	and der y = vy init 0.0
-	and der z = vz init -0.5
+	and der z = vz init Parameters.init_z
 	
 	and der vx = ax init 0.0
 	and der vy = ay init 0.0
@@ -63,7 +63,7 @@ let hybrid main3d () = let
 	and data = drone () 
 	and ((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot)) = data
   in present
-     | (period (0.10)) ->
+     | (period (0.05)) ->
           let () = world ((x,y,z),(phi,theta,psi)) in plot (t,data)
      else ()
 

@@ -23,3 +23,5 @@ let b = 3.87e-6 (* (rotor angular speed)^2 to vertical torque ratio *)
 
 let pi = 3.141592654
 
+let init_z = -0.5
+

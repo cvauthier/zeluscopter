@@ -33,17 +33,35 @@ let node filterFIR5 (x,(b0,b1,b2,b3,b4)) = y where
 
 let node movingAverage5 x = filterFIR5(x,(0.2,0.2,0.2,0.2,0.2))
 
+let node imu ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z)) = ((x,y,z),(vx,vy,vz),(phi,theta,psi),(phidot,thetadot,psidot)) where
+	rec vx = euler_integrator (0.0,accel_x)
+	and vy = euler_integrator (0.0,accel_y)
+	and vz = euler_integrator (0.0,accel_z)
+	and x = euler_integrator (0.0,vx)
+	and y = euler_integrator (0.0,vy)
+	and z = euler_integrator (Parameters.init_z,vz)
+	and (phidot,thetadot,psidot) = Physics.omega_to_thetadot((gyro_x,gyro_y,gyro_z),(phi,theta,psi))
+	and phi = euler_integrator (0.0,phidot)
+	and theta = euler_integrator (0.0,thetadot)
+	and psi = euler_integrator (0.0,psidot)
+
 let node controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z)) = (i1,i2,i3,i4) where
 	
-	rec fgyro_x = filterFIR5 (gyro_x, (0.2,0.2,0.2,0.2,0.2)) +. 0.0 *. accel_x
-	and fgyro_y = filterFIR5 (gyro_y, (0.2,0.2,0.2,0.2,0.2)) +. 0.0 *. accel_y
-	and fgyro_z = filterFIR5 (gyro_z, (0.2,0.2,0.2,0.2,0.2)) +. 0.0 *. accel_z
+	rec faccel_x = filterFIR5 (accel_x, (0.8,0.1,0.1,0.0,0.0))
+	and faccel_y = filterFIR5 (accel_y, (0.8,0.1,0.1,0.0,0.0))
+	and faccel_z = filterFIR5 (accel_z, (0.8,0.1,0.1,0.0,0.0))
+	and fgyro_x = filterFIR5 (gyro_x, (0.8,0.1,0.1,0.0,0.0))
+	and fgyro_y = filterFIR5 (gyro_y, (0.8,0.1,0.1,0.0,0.0))
+	and fgyro_z = filterFIR5 (gyro_z, (0.8,0.1,0.1,0.0,0.0))
+
+	and ((x,y,z),(vx,vy,vz),(phi,theta,psi),(phidot,thetadot,psidot)) = imu ((faccel_x,faccel_y,faccel_z),(fgyro_x,fgyro_y,fgyro_z))
 	
-	and control_x = pid_controller (fgyro_x,40.,30.,10.)
-	and control_y = pid_controller (fgyro_y,40.,30.,10.)
-	and control_z = pid_controller (fgyro_z,20.,10.,0.)
+	and control_x = pid_controller (phidot,40.,20.,10.0) +. x *. 0.0
+	and control_y = pid_controller (thetadot,40.,20.,10.0) +. y *. 0.0
+	and control_z = pid_controller (psidot,40.,20.,10.0) +. z *. 0.0
+	
 	and (tx,ty,tz) = (-. ix *. control_x, -. iy *. control_y, -. iz *. control_z)
-	and (i1,i2,i3,i4) = solve_inputs((tx,ty,tz),  m *. g)
+	and (i1,i2,i3,i4) = solve_inputs((tx,ty,tz),  m *. g /. ((cos phi) *. (cos theta)))
 
 let node sensor (value,sigma) = value +. (World.random_normal ()) *. sigma
 
