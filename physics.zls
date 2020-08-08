@@ -14,6 +14,8 @@ let body_to_inertial (phi,theta,psi) = (r11,r12,r13,r21,r22,r23,r31,r32,r33) whe
 	r32 = (sin phi) *. (cos theta) and
 	r33 = (cos phi) *. (cos theta)
 
+let inertial_to_body (phi,theta,psi) = mat33t (body_to_inertial (phi,theta,psi))
+
 let thetadot_to_omega((phidot,thetadot,psidot),(phi,theta,psi)) = (wx,wy,wz) where
 	rec s_th = sin theta and c_th = cos theta
 	and s_ph = sin phi and c_ph = cos phi

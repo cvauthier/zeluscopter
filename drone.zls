@@ -33,19 +33,23 @@ let hybrid drone () =
 																			| up (-. pi -. last psi) -> pi
 	and (phidot,thetadot,psidot) = omega_to_thetadot((wx,wy,wz),(phi,theta,psi))
 
-	and inputs = Controller.simulate_controller ((ax,ay,az),(wx,wy,wz))
+	and (body_ax,body_ay,body_az) = Matrix.mat33xvec3 (inertial_to_body (phi,theta,psi), (ax,ay,az)) 
+	and inputs = Controller.simulate_controller ((body_ax,body_ay,body_az),(wx,wy,wz))
 
 (* ** plotting ** *)
 
 open Scope
 
 let node plot (t,((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot))) =
-  let s1 = scope (-0.02, 0.02, ("phi", linear, phi)) in
-  let s2 = scope (-0.02, 0.02, ("theta", linear, theta)) in
-  let s3 = scope (-0.02, 0.02, ("psi", linear, psi)) in
+  (*let s1 = scope (-0.01, 0.01, ("phi", linear, phi)) in
+  let s2 = scope (-0.01, 0.01, ("theta", linear, theta)) in
+  let s3 = scope (-0.01, 0.01, ("psi", linear, psi)) in
+  let () = window3 ("drone", 10.0, t, s1, s2, s3) in*)
   let s4 = scope (-0.1, 0.1, ("ax", linear, ax)) in
-	let s5 = scope (0.0, 1.0, ("z", linear, -. z)) in
-  window5 ("drone", 10.0, t, s1, s2, s3, s4, s5)
+	let s5 = scope (-1.0, 1.0, ("x", linear, x)) in
+	let s6 = scope (-1.0, 1.0, ("y", linear, y)) in
+	let s7 = scope (0.0, 1.0, ("z", linear, -. z)) in
+	window4 ("drone", 10.0, t, s4, s5, s6, s7)
 
 (* ** main ** *)
 

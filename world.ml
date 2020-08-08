@@ -29,9 +29,9 @@ let create pos angles =
         Unix.close output;
         Unix.set_nonblock input;
 				Unix.dup2 input Unix.stdin;
-				Unix.execv "visualizer" [||];
-        outch
-      end
+				ignore (Unix.execv "visualizer" [||]);
+      	outch
+			end
 
 let update fout (x,y,z) (phi,theta,psi) =
   Printf.fprintf fout "%e,%e,%e,%e,%e,%e\n" x y z phi theta psi;
