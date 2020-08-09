@@ -63,17 +63,17 @@ let node get_angle (cos_phi,sin_phi) =
 
 let node position_control ((vx,vy,vz),(xd,yd,zd),(phi,theta,psi)) = ((phid,thetad,psid),thrust) where
 
-	rec ax = -. pid_controller (vx -. (derivate xd), -. xd, 10.0, 10.0, 0.0)
-	and ay = -. pid_controller (vy -. (derivate yd), -. yd, 10.0, 10.0, 0.0)
-	and az = -. pid_controller (vz -. (derivate zd), init_z -. zd, 10.0, 10.0, 0.0)
+	rec ax = -. pid_controller (vx -. (derivate xd), -. xd, 2.0, 2.0, 0.0)
+	and ay = -. pid_controller (vy -. (derivate yd), -. yd, 2.0, 2.0, 0.0)
+	and az = -. pid_controller (vz -. (derivate zd), init_z -. zd, 2.0, 2.0, 0.0)
 	
 	and (fx,fy,fz) = scalarxvec3 (-. m, (ax,ay,az -. g))
 
-	and thrust = m *. (g -. az) /. ((cos phi) *. (cos theta))
+	and thrust = m *. (g -. az) /. ((cos phi) *. (cos theta)) 
 
 	and (ux,uy,uz) = scalarxvec3 (1.0 /. (normvec3 (fx,fy,fz)), (fx,fy,fz))
 	
-	and psid = 0.0
+	and psid = 0.0 (* or psid = psi *)
 	
 	and thetad = atan ((ux *. (cos psid) +. uy *. (sin psid)) /. uz)
 	
@@ -81,7 +81,7 @@ let node position_control ((vx,vy,vz),(xd,yd,zd),(phi,theta,psi)) = ((phid,theta
 	and sin_phid = dotvec3 ((ux,uy,uz),((sin psid), -. (cos psid), 0.0))
 	and phid = get_angle (cos_phid,sin_phid)
 
-let node controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z)) = (i1,i2,i3,i4) where
+let node controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z),(xd,yd,zd)) = (i1,i2,i3,i4) where
 	
 	rec faccel_x = filterFIR5 (accel_x, (0.8,0.1,0.1,0.0,0.0))
 	and faccel_y = filterFIR5 (accel_y, (0.8,0.1,0.1,0.0,0.0))
@@ -89,22 +89,24 @@ let node controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z)) = (i1,i2,
 	and fgyro_x = filterFIR5 (gyro_x, (0.8,0.1,0.1,0.0,0.0))
 	and fgyro_y = filterFIR5 (gyro_y, (0.8,0.1,0.1,0.0,0.0))
 	and fgyro_z = filterFIR5 (gyro_z, (0.8,0.1,0.1,0.0,0.0))
+	and fxd = movingAverage5 xd
+	and fyd = movingAverage5 yd
+	and fzd = movingAverage5 zd
 
 	and ((_,_,z),(vx,vy,vz),(phi,theta,psi),(phidot,thetadot,psidot)) = imu ((faccel_x,faccel_y,faccel_z),(fgyro_x,fgyro_y,fgyro_z))
 
-	and (xd,yd,zd) = (0.0,0.0,init_z)
-	and ((phid,thetad,psid),thrust) = position_control ((vx,vy,vz),(xd,yd,zd),(phi,theta,psi))
+	and ((phid,thetad,psid),thrust) = position_control ((vx,vy,vz),(fxd,fyd,fzd),(phi,theta,psi))
 	and (i1,i2,i3,i4) = orientation_control ((phidot,thetadot,psidot),(phid,thetad,psid),thrust)
-
-	(*
+(*
 	and t = 0.0 -> step +. (pre t)
-	and s = Scope.scope (0.0, 1.0, ("z", Scope.linear, -. z)) 
-	and () = Scope.window ("controller", 10.0, t, s)
-	*)
+	and s1 = Scope.scope (0.0, 1.0, ("z", Scope.linear, -. z)) 
+	and s2 = Scope.scope (0.0, 1.0, ("zd", Scope.linear, -. zd))
+	and s3 = Scope.scope (-. g, 2.0 *. g, ("T/m", Scope.linear, thrust /. m))
+	and () = Scope.window3 ("controller", 10.0, t, s1, s2, s3) *)
 
 let node sensor (value,sigma) = value +. (World.random_normal ()) *. sigma
 
-let hybrid simulate_controller ((ax,ay,az),(wx,wy,wz)) = (i1,i2,i3,i4) where
+let hybrid simulate_controller ((ax,ay,az),(wx,wy,wz),(xd,yd,zd)) = (i1,i2,i3,i4) where
 	rec init i1 = 0.0
 	and init i2 = 0.0
 	and init i3 = 0.0
@@ -122,7 +124,7 @@ let hybrid simulate_controller ((ax,ay,az),(wx,wy,wz)) = (i1,i2,i3,i4) where
 		and gyro_y = sensor (0.0 -> last wy, gyro_error)
 		and gyro_z = sensor (0.0 -> last wz, gyro_error) in
 
-		let (j1,j2,j3,j4) = controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z)) in
+		let (j1,j2,j3,j4) = controller ((accel_x,accel_y,accel_z),(gyro_x,gyro_y,gyro_z),(xd,yd,zd)) in
 
 		(* smooth the output to prevent brutal speed variation *)
 		do  

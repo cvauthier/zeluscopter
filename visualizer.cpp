@@ -107,25 +107,18 @@ int main(int argc, char **argv)
 	double cam_phi = 3.1416 / 4.0;
 	double cam_l = 0.2;
 
+	core::vector3df desiredPos(0.0,0.0,0.0);
+	bool initialized = false;
+	bool commandMode = false;
+	bool noSyncMode = false;
+	bool keyCWasDown = false;
+	bool keyNWasDown = false;
+
 	while(device->run())
 	{
 		const u32 t0 = device->getTimer()->getTime();
 
-		if(receiver.IsKeyDown(irr::KEY_UP))
-			cam_phi = fmin(fmax(cam_phi+0.01,-1.5),1.5);
-		else if(receiver.IsKeyDown(irr::KEY_DOWN))
-			cam_phi = fmin(fmax(cam_phi-0.01,-1.5),1.5);
-		
-		if(receiver.IsKeyDown(irr::KEY_KEY_W))
-			cam_l = fmin(fmax(cam_l+0.002,0.06),1.0);
-		else if(receiver.IsKeyDown(irr::KEY_KEY_S))
-			cam_l = fmin(fmax(cam_l-0.002,0.06),1.0);
-
-		if(receiver.IsKeyDown(irr::KEY_RIGHT))
-			cam_theta += 0.02;
-		else if(receiver.IsKeyDown(irr::KEY_LEFT))
-			cam_theta -= 0.02;
-
+		bool takeCommand = false;
 		float x,y,z,phi,theta,psi;
 		if (scanf("%f,%f,%f,%f,%f,%f\n",&x,&y,&z,&phi,&theta,&psi) > 0)
 		{
@@ -134,17 +127,89 @@ int main(int argc, char **argv)
 			pitchNode->setRotation(core::vector3df(0.0,0.0,theta * 180.0 / 3.1416));
 			rowNode->setRotation(core::vector3df(phi * 180.0 / 3.1416,0.0,0.0));
 	
-			camera->setTarget(yawNode->getPosition());
-			core::vector3df vec(cam_l*cos(cam_theta)*cos(cam_phi),
-													cam_l*sin(cam_phi),
-													cam_l*sin(cam_theta)*cos(cam_phi));
-			camera->setPosition(yawNode->getPosition() + vec);
+			if (!initialized)
+			{
+				initialized = true;
+				desiredPos = core::vector3df(x,y,z);
+			}
+			else
+			{
+				printf("%f,%f,%f\n",desiredPos.X,desiredPos.Y,desiredPos.Z);
+				fflush(stdout);
+			}
+
+			takeCommand = true;
 		}
+
+		if (commandMode)
+		{
+			if (takeCommand || noSyncMode)
+			{
+				if(receiver.IsKeyDown(irr::KEY_KEY_W))
+					desiredPos.Z -= 0.025;
+				else if(receiver.IsKeyDown(irr::KEY_KEY_S))
+					desiredPos.Z += 0.025;
+
+				core::vector3df up(-cos(cam_theta),-sin(cam_theta),0.0);
+				core::vector3df right(sin(cam_theta),-cos(cam_theta),0.0);
+			
+				if(receiver.IsKeyDown(irr::KEY_UP))
+					desiredPos += 0.005 * up;
+				else if(receiver.IsKeyDown(irr::KEY_DOWN))
+					desiredPos -= 0.005 * up;
+			
+				if(receiver.IsKeyDown(irr::KEY_RIGHT))
+					desiredPos += 0.005 * right;
+				else if(receiver.IsKeyDown(irr::KEY_LEFT))
+					desiredPos -= 0.005 * right;
+			}
+		}
+		else
+		{
+			if(receiver.IsKeyDown(irr::KEY_UP))
+				cam_phi = fmin(fmax(cam_phi+0.01,-1.5),1.5);
+			else if(receiver.IsKeyDown(irr::KEY_DOWN))
+				cam_phi = fmin(fmax(cam_phi-0.01,-1.5),1.5);
+		
+			if(receiver.IsKeyDown(irr::KEY_KEY_W))
+				cam_l = fmin(fmax(cam_l+0.002,0.06),1.0);
+			else if(receiver.IsKeyDown(irr::KEY_KEY_S))
+				cam_l = fmin(fmax(cam_l-0.002,0.06),1.0);
+
+			if(receiver.IsKeyDown(irr::KEY_RIGHT))
+				cam_theta += 0.02;
+			else if(receiver.IsKeyDown(irr::KEY_LEFT))
+				cam_theta -= 0.02;
+		}
+
+		if (receiver.IsKeyDown(irr::KEY_KEY_C))
+		{
+			if (!keyCWasDown)
+				commandMode = !commandMode;
+			keyCWasDown = true;
+		}
+		else
+			keyCWasDown = false;
+
+		if (receiver.IsKeyDown(irr::KEY_KEY_N))
+		{
+			if (!keyNWasDown)
+				noSyncMode = !noSyncMode;
+			keyNWasDown = true;
+		}
+		else
+			keyNWasDown = false;
+
+		camera->setTarget(yawNode->getPosition());
+		core::vector3df vec(cam_l*cos(cam_theta)*cos(cam_phi),
+												cam_l*sin(cam_phi),
+												cam_l*sin(cam_theta)*cos(cam_phi));
+		camera->setPosition(yawNode->getPosition() + vec);
 
 		driver->beginScene(true, true, video::SColor(255,113,113,133));
 		smgr->drawAll();
 		driver->endScene();
-
+		
 		core::stringw tmp(L"Drone visualisation - fps:");
 		tmp += driver->getFPS();
 		device->setWindowCaption(tmp.c_str());
