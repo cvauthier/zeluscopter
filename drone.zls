@@ -73,6 +73,6 @@ let hybrid main3d () = let
 		do (xd,yd,zd) = world ((0.0 -> last x, 0.0 -> last y,init_z -> last z),
 													 (0.0 -> last phi, 0.0 -> last theta, 0.0 -> last psi)) done
 	in present
-     | period (0.10) -> plot (t,data)
+     | (period (0.10)) -> plot (t,data)
      else ()
 
