@@ -210,7 +210,7 @@ int main(int argc, char **argv)
 		smgr->drawAll();
 		driver->endScene();
 		
-		core::stringw tmp(L"Drone visualisation - fps:");
+		core::stringw tmp(L"Drone visualization - fps:");
 		tmp += driver->getFPS();
 		device->setWindowCaption(tmp.c_str());
 

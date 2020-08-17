@@ -63,9 +63,9 @@ let node get_angle (cos_phi,sin_phi) =
 
 let node position_control ((vx,vy,vz),(xd,yd,zd),(phi,theta,psi)) = ((phid,thetad,psid),thrust) where
 
-	rec ax = -. pid_controller (vx -. (derivate xd), -. xd, 2.0, 2.0, 0.0)
-	and ay = -. pid_controller (vy -. (derivate yd), -. yd, 2.0, 2.0, 0.0)
-	and az = -. pid_controller (vz -. (derivate zd), init_z -. zd, 2.0, 2.0, 0.0)
+	rec ax = -. pid_controller (vx -. (derivate xd), -. xd, 4.0, 4.0, 0.0)
+	and ay = -. pid_controller (vy -. (derivate yd), -. yd, 4.0, 4.0, 0.0)
+	and az = -. pid_controller (vz -. (derivate zd), init_z -. zd, 4.0, 4.0, 0.0)
 	
 	and (fx,fy,fz) = scalarxvec3 (-. m, (ax,ay,az -. g))
 

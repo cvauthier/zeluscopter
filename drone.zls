@@ -40,23 +40,22 @@ let hybrid drone (xd,yd,zd) =
 
 open Scope
 
-let node plot (t,((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot))) =
+let node plot (t,((x,y,z),(vx,vy,vz),(ax,ay,az),(phi,theta,psi),(phidot,thetadot,psidot)),(xd,yd,zd)) =
   (*let s1 = scope (-0.01, 0.01, ("phi", linear, phi)) in
   let s2 = scope (-0.01, 0.01, ("theta", linear, theta)) in
   let s3 = scope (-0.01, 0.01, ("psi", linear, psi)) in
-  let () = window3 ("drone", 10.0, t, s1, s2, s3) in*)
-  let s4 = scope (-0.1, 0.1, ("ax", linear, ax)) in
+ 	let () = window3 ("drone", 10.0, t, s1, s2, s3) in*)
 	let s5 = scope (-1.0, 1.0, ("x", linear, x)) in
 	let s6 = scope (-1.0, 1.0, ("y", linear, y)) in
-	let s7 = scope (0.0, 1.0, ("z", linear, -. z)) in
-	window4 ("drone", 10.0, t, s4, s5, s6, s7)
+	let s7 = scope (0.0, 1.0, ("-z", linear, -. z)) in
+	window3 ("drone", 10.0, t, s5, s6, s7)
 
 (* ** main ** *)
 
 let hybrid main () = 
   let der t = 1.0 init 0.0 in
   let data = drone (0.0,0.0,init_z) in
-  present (period (0.10)) -> plot (t,data); ()
+  present (period (0.10)) -> plot (t,data,(0.0,0.0,init_z)); ()
 
 let node world (pos,angles)  =
   let rec world = (World.create pos angles) fby world in
@@ -73,6 +72,6 @@ let hybrid main3d () = let
 		do (xd,yd,zd) = world ((0.0 -> last x, 0.0 -> last y,init_z -> last z),
 													 (0.0 -> last phi, 0.0 -> last theta, 0.0 -> last psi)) done
 	in present
-     | (period (0.10)) -> plot (t,data)
+     | (period (0.10)) -> plot (t,data,(xd,yd,zd))
      else ()
 
