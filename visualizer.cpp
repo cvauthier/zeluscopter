@@ -212,6 +212,8 @@ int main(int argc, char **argv)
 		
 		core::stringw tmp(L"Drone visualization - fps:");
 		tmp += driver->getFPS();
+		tmp += (commandMode) ? " - command" : " - camera";
+		tmp += (noSyncMode) ? " - nosync" : " - sync";
 		device->setWindowCaption(tmp.c_str());
 
 		const u32 t1 = device->getTimer()->getTime();
