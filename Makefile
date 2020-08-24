@@ -1,6 +1,6 @@
 ## Local configuration
 
-ZELUS?=$(HOME)/Projects/zelus-v2
+ZELUS?=../zelus
 OCAMLC?= ocamlc
 
 ##
