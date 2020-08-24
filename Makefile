@@ -1,16 +1,21 @@
-OCAMLC?= ocamlc -I /home/cv/.opam/4.08.0/lib/ocaml
+## Local configuration
 
-LABLGTK2 = -I /home/cv/.opam/4.08.0/lib/lablgtk2
+ZELUS?=$(HOME)/Projects/zelus-v2
+OCAMLC?= ocamlc
 
-SUNDIALS=-I /home/cv/.opam/4.08.0/lib/sundialsml
+##
+
+LABLGTK2 = -I $(shell ocamlfind query lablgtk2)
+
+SUNDIALS = -I $(shell ocamlfind query sundialsml)
 SUNDIALS_CVODE = sundials.cma
 
 ZLSTDLIBS = bigarray.cma unix.cma $(SUNDIALS) $(SUNDIALS_CVODE)
 ZLEXTRALIBS = zllib.cma
 ZLGTKLIBS = $(LABLGTK2) lablgtk.cma zllibgtk.cma
 
-ZELUC = ../zelus/bin/zeluc
-ZLLIB = ../zelus/lib
+ZELUC = $(ZELUS)/bin/zeluc
+ZLLIB = $(ZELUS)/lib
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
 PRODUCED_ML=parameters.ml matrix.ml controller.ml physics.ml drone.ml drone_main.ml drone3d_main.ml
@@ -36,18 +41,18 @@ drone3d.byte: INCLUDES += -I +lablgtk2 $(SUNDIALS)
 drone3d.byte: $(OBJS3D) drone3d_main.ml visualizer
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(OBJS) drone3d_main.ml
 
-drone3d_main.ml: 
+drone3d_main.ml: drone.zls
 	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main3d drone.zls
 	mv main3d.ml drone3d_main.ml
 
-drone_main.ml:
+drone_main.ml: drone.zls
 	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main drone.zls
 	mv main.ml drone_main.ml
 
 drone.byte: $(OBJS) drone_main.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(OBJS) drone_main.ml
 
-visualizer:
+visualizer: visualizer.cpp
 	g++ -o visualizer visualizer.cpp -lIrrlicht
 
 world.cmo: world.zci
